@@ -1,4 +1,4 @@
-use zero2prod_ldn_live::run;
+use zero2prod::run;
 use std::net::TcpListener;
 
 #[tokio::main]
