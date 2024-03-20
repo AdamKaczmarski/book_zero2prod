@@ -15,5 +15,5 @@ pub fn run(listener: TcpListener, connection: PgPool) -> Result<Server, std::io:
     })
     .listen(listener)?
     .run();
-    return Ok(server);
+    Ok(server)
 }
