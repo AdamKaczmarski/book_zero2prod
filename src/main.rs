@@ -5,7 +5,7 @@ use zero2prod::{
     startup::run,
     telemetry::{get_subscriber, init_subscriber},
 };
-
+// TODO start chapter 4.5.13 page 144
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
     let subscriber = get_subscriber("zero2prod".into(), "info".into(), std::io::stdout);
