@@ -1,5 +1,6 @@
 use actix_web::web;
 use actix_web::HttpResponse;
+use actix_web::ResponseError;
 use chrono::Utc;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
@@ -84,11 +85,12 @@ pub async fn subscribe(
     name = "Store subscription token in the databse",
     skip(subscription_token, transaction)
 )]
+
 async fn store_token(
     transaction: &mut Transaction<'_, Postgres>,
     subscriber_id: Uuid,
     subscription_token: &str,
-) -> Result<(), sqlx::Error> {
+) -> Result<(), StoreTokenError> {
     let query = sqlx::query!(
         r#"INSERT INTO subscription_tokens(subscription_token, subscriber_id)
                  VALUES ($1,$2)"#,
@@ -97,10 +99,26 @@ async fn store_token(
     );
     transaction.execute(query).await.map_err(|e| {
         tracing::error!("Failed to execute query: {:?}", e);
-        e
+        StoreTokenError(e)
     })?;
     Ok(())
 }
+
+#[derive(Debug)]
+pub struct StoreTokenError(sqlx::Error);
+
+impl ResponseError for StoreTokenError {}
+
+impl std::fmt::Display for StoreTokenError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "A database error was encountere while \
+               trying to store a subscription token."
+        )
+    }
+}
+
 #[tracing::instrument(
     name="Send a confirmation email to a new subscriber"
     skip(email_client,new_subscriber,base_url,subscription_token)
