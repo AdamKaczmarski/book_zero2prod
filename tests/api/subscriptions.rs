@@ -7,11 +7,32 @@ use wiremock::{
 use crate::helpers::spawn_app;
 
 #[tokio::test]
+async fn subscribe_fails_if_there_is_a_fatal_database_error() {
+    let app = spawn_app().await;
+    let body = "name=le%20quin&email=ursula_le_guin%40gmail.com";
+
+    sqlx::query!("ALTER TABLE subscriptions DROP COLUMN email;",)
+        .execute(&app.db_pool)
+        .await
+        .unwrap();
+    //Act
+    Mock::given(path("/email"))
+        .and(method("POST"))
+        .respond_with(ResponseTemplate::new(200))
+        .mount(&app.email_server)
+        .await;
+    let response = app.post_subscriptions(body.into()).await;
+
+    //Assert
+    assert_eq!(500, response.status().as_u16());
+}
+
+#[tokio::test]
 async fn subscribe_returns_200_for_valid_form_data() {
     //Arrange
     let app = spawn_app().await;
-    //Act
     let body = "name=le%20quin&email=ursula_le_guin%40gmail.com";
+    //Act
     Mock::given(path("/email"))
         .and(method("POST"))
         .respond_with(ResponseTemplate::new(200))
